@@ -335,14 +335,13 @@ namespace ravl
         auto tmpl = *options.sgx_endorsement_cache_url_template;
         requests.emplace_back(
           fmt::vformat(tmpl, fmt::make_format_args("pckcrl", root_crl_url)));
+	auto tcb_def = tcb_url + "&fmspc=" + fmspc;
         requests.emplace_back(fmt::vformat(
-          tmpl, fmt::make_format_args("tcb", tcb_url + "&fmspc=" + fmspc)));
+          tmpl, fmt::make_format_args("tcb", tcb_def)));
+	auto pck_def = intel_certificates_url_base + "/intelsgxpck" + ca + ".crl" + "&encoding=pem";
         requests.emplace_back(fmt::vformat(
           tmpl,
-          fmt::make_format_args(
-            "pckcrl",
-            intel_certificates_url_base + "/intelsgxpck" + ca + ".crl" +
-              "&encoding=pem")));
+          fmt::make_format_args("pckcrl", pck_def)));
         if (!qve)
           requests.emplace_back(fmt::vformat(
             tmpl, fmt::make_format_args("qe/identity", qe_identity_url)));
