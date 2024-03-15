@@ -8,6 +8,7 @@
 #include "ravl/oe.h"
 #include "ravl/sev_snp.h"
 #include "ravl/sgx.h"
+#include "ravl/aci.h"
 
 namespace ravl
 {
@@ -19,6 +20,7 @@ namespace ravl
       {Source::SGX, "sgx"},
       {Source::SEV_SNP, "sevsnp"},
       {Source::OPEN_ENCLAVE, "openenclave"},
+      {Source::ACI, "aci"}
     })
 
   std::string to_string(Source src)
@@ -73,6 +75,15 @@ namespace ravl
           endorsements = j.at("endorsements").get<std::vector<uint8_t>>();
       }
 
+      std::vector<uint8_t> uvm_endorsements;
+      if (j.contains("uvm_endorsements"))
+      {
+        if (base64) 
+          uvm_endorsements = from_base64(j.at("uvm_endorsements").get<std::string>());
+        else 
+          uvm_endorsements = j.at("uvm_endorsements").get<std::vector<uint8_t>>();
+      }
+
       switch (source)
       {
         case Source::SGX:
@@ -83,6 +94,9 @@ namespace ravl
           break;
         case Source::OPEN_ENCLAVE:
           r = std::make_shared<oe::Attestation>(evidence, endorsements);
+          break;
+        case Source::ACI:
+          r = std::make_shared<aci::Attestation>(evidence, endorsements, uvm_endorsements);
           break;
         default:
           throw std::runtime_error(
