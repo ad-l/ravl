@@ -17,6 +17,7 @@ if (UNIX)
   endif ()
 endif ()
 
+cmake_policy(SET CMP0048 NEW)
 project(ravl LANGUAGES CXX C)
 
 cmake_minimum_required(VERSION 3.14)
@@ -72,7 +73,7 @@ set(RAVL_SRC
   ${RAVL_SRC_DIR}/attestation.cpp
   ${RAVL_SRC_DIR}/request_tracker.cpp
   ${RAVL_SRC_DIR}/capi.cpp)
-set(RAVL_INCLUDE 3rdparty ${RAVL_DIR}/include)
+set(RAVL_INCLUDE 3rdparty ${RAVL_DIR}/include 3rdparty/QCBOR/inc 3rdparty/t_cose/inc)
 set(RAVL_DEFS RAVL_LIBRARY_BUILD)
 set(RAVL_LIB_DEPS pthread)
 set(RAVL_LIB_DIRS)
@@ -103,13 +104,15 @@ if(PROFILE)
   list(APPEND RAVL_LINK_OPTS -g -pg)
 endif()
 
-
 if(SAN)
   list(APPEND RAVL_FLAGS -fsanitize=undefined,address -fno-omit-frame-pointer)
   list(APPEND RAVL_LINK_OPTS -fsanitize=undefined,address)
 endif()
 
 set(RAVL_TARGETS)
+
+include(cmake/qcbor.cmake)
+list(APPEND RAVL_TARGETS qcbor)
 
 if(STATIC)
   add_library(ravl STATIC ${RAVL_SRC})
@@ -123,6 +126,7 @@ if(STATIC)
   target_compile_definitions(ravl PRIVATE ${RAVL_DEFS})
   target_link_directories(ravl PRIVATE ${RAVL_LIB_DIRS})
   target_link_libraries(ravl INTERFACE ${RAVL_LIB_DEPS})
+  target_link_libraries(ravl PRIVATE qcbor)
   target_link_options(ravl PRIVATE ${RAVL_LINK_OPTS})
   target_include_directories(ravl INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
   list(APPEND RAVL_TARGETS ravl)

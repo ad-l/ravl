@@ -1,0 +1,9 @@
+[submodule "3rdparty/QCBOR"]
+	path = 3rdparty/QCBOR
+	url = https://github.com/laurencelundblade/QCBOR
+[submodule "3rdparty/didx509cpp"]
+	path = 3rdparty/didx509cpp
+	url = https://github.com/microsoft/didx509cpp.git
+[submodule "3rdparty/t_cose"]
+	path = 3rdparty/t_cose
+	url = https://github.com/laurencelundblade/t_cose.git

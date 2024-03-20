@@ -8,6 +8,7 @@
 #include "json.h"
 #include "sev_snp.h"
 #include "aci.h"
+#include "uvm_endorsements.h"
 #include "util.h"
 #include "visibility.h"
 
@@ -25,7 +26,11 @@ namespace ravl
       const std::optional<std::vector<HTTPResponse>>& http_responses) const
     {
       std::cout << "Calling SEV-SNP attestation verifier";
-      return sev_snp::Attestation::verify(options, http_responses);
+      auto snp_claims = sev_snp::Attestation::verify(options, http_responses);
+
+      std::vector<uint8_t> measurement;
+      verify_uvm_endorsements(uvm_endorsements, measurement);
+      return snp_claims;
     }
   }
 }
