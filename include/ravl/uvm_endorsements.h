@@ -3,11 +3,12 @@
 #pragma once
 
 #include "jwk.h"
+#include "json.h"
 //#include "cose_verifier.h"
 #include "cose_common.h"
 #include "did.h"
 
-//#include <didx509cpp/didx509cpp.h>
+#include <didx509cpp/didx509cpp.h>
 #include <nlohmann/json.hpp>
 #include <qcbor/qcbor.h>
 #include <qcbor/qcbor_spiffy_decode.h>
@@ -241,7 +242,7 @@ namespace ravl
 
 #ifdef COMMENT
   static std::span<const uint8_t> verify_uvm_endorsements_signature(
-    const crypto::RSAPublicKeyPtr& leef_cert_pub_key,
+    const crypto::JsonWebKeyRSAPublic& leef_cert_pub_key,
     const std::vector<uint8_t>& uvm_endorsements_raw)
   {
     auto verifier = crypto::make_cose_verifier(leef_cert_pub_key);
@@ -268,37 +269,50 @@ namespace ravl
         fmt::format("Signature algorithm {} is not expected RSA", phdr.alg));
     }
 
-    std::cout << phdr.alg << ":" << phdr.feed << "\n";
-#ifdef COMMENT
     std::string pem_chain;
     for (auto const& c : phdr.x5_chain)
     {
-      pem_chain += crypto::cert_der_to_pem(c).str();
+      pem_chain += crypto::cert_der_to_pem(c);
     }
+
+    std::cout << pem_chain << "\n";
 
     const auto& did = phdr.iss;
 
     auto did_document_str = didx509::resolve(pem_chain, did);
-    did::DIDDocument did_document = nlohmann::json::parse(did_document_str);
+    std::cout << did_document_str << "\n";
 
-    if (did_document.verification_method.empty())
+    did::DIDDocument did_document;
+    try 
+    {
+      auto j = ravl::json::parse(did_document_str);
+      ravl::ravl_json_serializer<did::DIDDocument>::from_json(j, did_document);
+    }
+    catch(std::exception& ex)
+    {
+      std::cout << ex.what();
+      throw std::runtime_error(ex.what());
+    }
+
+    if (did_document.verificationMethod.empty())
     {
       throw std::logic_error(fmt::format(
         "Could not find verification method for DID document: {}",
         did_document_str));
     }
 
-    crypto::RSAPublicKeyPtr pubk = nullptr;
-    for (auto const& vm : did_document.verification_method)
+    std::optional<crypto::JsonWebKeyRSAPublic> pubk = std::nullopt;
+    bool found = false;
+    for (auto const& vm : did_document.verificationMethod)
     {
-      if (vm.controller == did && vm.public_key_jwk.has_value())
+      if (vm.controller == did)
       {
-        pubk = crypto::make_rsa_public_key(vm.public_key_jwk.value());
+        pubk.emplace(vm.publicKeyJwk);
         break;
       }
     }
 
-    if (pubk == nullptr)
+    if (!pubk.has_value())
     {
       throw std::logic_error(fmt::format(
         "Could not find matching public key for DID {} in {}",
@@ -306,8 +320,9 @@ namespace ravl
         did_document_str));
     }
 
+#ifdef COMMENT
     auto raw_payload =
-      verify_uvm_endorsements_signature(pubk, uvm_endorsements_raw);
+      verify_uvm_endorsements_signature(pubk.value(), uvm_endorsements_raw);
 
     if (phdr.content_type != cose::headers::CONTENT_TYPE_APPLICATION_JSON_VALUE)
     {

@@ -2,8 +2,9 @@
 // Licensed under the Apache 2.0 License.
 #pragma once
 
-#include <string>
+#include "json.h"
 
+#include <string>
 namespace ravl::crypto
 {
   // SNIPPET_START: supported_curves
@@ -144,5 +145,38 @@ namespace ravl::crypto
     std::string d; // base64url
 
     bool operator==(const JsonWebKeyEdDSAPrivate&) const = default;
+  };
+}
+
+namespace ravl {
+  template <>
+  struct ravl_json_serializer<crypto::JsonWebKeyRSAPublic>
+  {
+    inline static void to_json(
+      ravl::json& j, const crypto::JsonWebKeyRSAPublic& x)
+    {
+    }
+
+    inline static void from_json(
+      const ravl::json& j, crypto::JsonWebKeyRSAPublic& x)
+    {
+      std::string kty;
+      j.at("kty").get_to(kty);
+      if (kty == "RSA") {
+        x.kty = crypto::JsonWebKeyType::RSA;
+      } 
+      else if (kty == "EC") {
+        x.kty = crypto::JsonWebKeyType::EC;
+      }
+      else if (kty == "OKP") {
+        x.kty == crypto::JsonWebKeyType::OKP;
+      }
+      else {
+        throw std::logic_error("Unsupported Json Web Key Type");
+      }
+
+      j.at("n").get_to(x.n);
+      j.at("e").get_to(x.e);
+    }
   };
 }

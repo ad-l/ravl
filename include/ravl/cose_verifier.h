@@ -2,8 +2,9 @@
 // Licensed under the Apache 2.0 License.
 #pragma once
 
-#include <chrono>
+#include "crypto.h"
 
+#include <chrono>
 namespace ravl::crypto
 {
   class COSEVerifier
@@ -18,7 +19,7 @@ namespace ravl::crypto
   using COSEVerifierUniquePtr = std::unique_ptr<COSEVerifier>;
 
   COSEVerifierUniquePtr make_cose_verifier(const std::vector<uint8_t>& cert);
-  COSEVerifierUniquePtr make_cose_verifier(const RSAPublicKeyPtr& pubk_ptr);
+  COSEVerifierUniquePtr make_cose_verifier(const JsonWebKeyRSAPublic& pubk);
 
   class COSEVerifier_OpenSSL : public COSEVerifier
   {
@@ -27,7 +28,7 @@ namespace ravl::crypto
 
   public:
     COSEVerifier_OpenSSL(const std::vector<uint8_t>& certificate);
-    COSEVerifier_OpenSSL(const RSAPublicKeyPtr& pubk_ptr);
+    COSEVerifier_OpenSSL(const JsonWebKeyRSAPublic& pubk);
     virtual ~COSEVerifier_OpenSSL() override;
     virtual bool verify(
       const std::span<const uint8_t>& buf,

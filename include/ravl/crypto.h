@@ -146,6 +146,15 @@ namespace ravl
       return res;
     }
 
+    inline std::string cert_der_to_pem(
+      const std::span<const uint8_t>& der
+    )
+    {
+        UqBIO cert_bio(der.data(), der.size());
+        UqX509 x509(cert_bio, false);
+        return x509.pem();
+    }
+
     inline std::vector<uint8_t> convert_signature_to_der(
       const std::span<const uint8_t>& signature, bool little_endian = false)
     {

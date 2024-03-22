@@ -3,7 +3,6 @@
 
 #include "cose_verifier.h"
 
-#include "ccf/crypto/public_key.h"
 #include "crypto/openssl/openssl_wrappers.h"
 #include "crypto/openssl/rsa_key_pair.h"
 #include "x509_time.h"
@@ -52,7 +51,7 @@ namespace crypto
     }
   }
 
-  COSEVerifier_OpenSSL::COSEVerifier_OpenSSL(const RSAPublicKeyPtr& pubk_ptr)
+  COSEVerifier_OpenSSL::COSEVerifier_OpenSSL(const JsonWebKeyRSAPublic& pubk_ptr)
   {
     public_key =
       std::make_shared<PublicKey_OpenSSL>(pubk_ptr->public_key_pem());
@@ -96,8 +95,8 @@ namespace crypto
     return std::make_unique<COSEVerifier_OpenSSL>(cert);
   }
 
-  COSEVerifierUniquePtr make_cose_verifier(const RSAPublicKeyPtr& pubk_ptr)
+  COSEVerifierUniquePtr make_cose_verifier(const JsonWebKeyRSAPublic& pubk)
   {
-    return std::make_unique<COSEVerifier_OpenSSL>(pubk_ptr);
+    return std::make_unique<COSEVerifier_OpenSSL>(pubk);
   }
 }

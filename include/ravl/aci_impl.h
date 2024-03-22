@@ -25,11 +25,12 @@ namespace ravl
       const Options& options,
       const std::optional<std::vector<HTTPResponse>>& http_responses) const
     {
-      std::cout << "Calling SEV-SNP attestation verifier";
-      auto snp_claims = sev_snp::Attestation::verify(options, http_responses);
-
-      std::vector<uint8_t> measurement;
+      auto generic_snp_claims = sev_snp::Attestation::verify(options, http_responses);
+      
+      auto snp_claims = std::dynamic_pointer_cast<sev_snp::Claims>(generic_snp_claims);
+      std::vector<uint8_t> measurement(begin(snp_claims->measurement), end(snp_claims->measurement));
       verify_uvm_endorsements(uvm_endorsements, measurement);
+      
       return snp_claims;
     }
   }
