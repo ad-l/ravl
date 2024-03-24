@@ -26,6 +26,8 @@
 #  error No crypto library available.
 #endif
 
+#include "jwk.h"
+
 namespace ravl
 {
   namespace crypto
@@ -72,6 +74,47 @@ namespace ravl
 
       return out;
     }
+
+    inline std::vector<uint8_t> from_base64url(const std::string& b64url)
+    {
+      std::string b64 = b64url;
+      size_t padding = b64.size() % 4;
+      if (padding) {
+          b64.append(4 - padding, '=');
+      }
+      for (char &c : b64) {
+          if (c == '-') {
+              c = '+';
+          } else if (c == '_') {
+              c = '/';
+          }
+      }
+
+      UqBIO bio_chain((UqBIO(BIO_f_base64())), UqBIO(b64));
+
+      std::vector<uint8_t> out(b64.size());
+      BIO_set_flags(bio_chain, BIO_FLAGS_BASE64_NO_NL);
+      BIO_set_close(bio_chain, BIO_CLOSE);
+      int n = BIO_read(bio_chain, out.data(), b64.size());
+
+      if (n < 0)
+        throw std::runtime_error("base64 decoding error");
+
+      out.resize(n);
+      return out;
+    }
+
+    struct UqEVP_PKEY_RSA : public OpenSSL::UqEVP_PKEY
+    {
+      UqEVP_PKEY_RSA(const JsonWebKeyRSAPublic& pubkey) : 
+        UqEVP_PKEY()
+      {
+        using namespace OpenSSL;
+        
+        UqBIGNUM n(from_base64url(pubkey.n));
+        UqBIGNUM e(from_base64url(pubkey.e));
+      }
+    };
 
     struct UqEVP_PKEY_P256 : public OpenSSL::UqEVP_PKEY
     {

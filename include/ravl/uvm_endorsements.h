@@ -4,7 +4,7 @@
 
 #include "jwk.h"
 #include "json.h"
-//#include "cose_verifier.h"
+#include "cose_verifier.h"
 #include "cose_common.h"
 #include "did.h"
 
@@ -240,12 +240,11 @@ namespace ravl
     }
   }
 
-#ifdef COMMENT
   static std::span<const uint8_t> verify_uvm_endorsements_signature(
-    const crypto::JsonWebKeyRSAPublic& leef_cert_pub_key,
+    const crypto::JsonWebKeyRSAPublic& pubkey,
     const std::vector<uint8_t>& uvm_endorsements_raw)
   {
-    auto verifier = crypto::make_cose_verifier(leef_cert_pub_key);
+    auto verifier = crypto::make_cose_verifier(pubkey);
 
     std::span<uint8_t> payload;
     if (!verifier->verify(uvm_endorsements_raw, payload))
@@ -255,13 +254,20 @@ namespace ravl
 
     return payload;
   }
-#endif
 
   static UVMEndorsements verify_uvm_endorsements(
     const std::vector<uint8_t>& uvm_endorsements_raw,
     const std::vector<uint8_t>& uvm_measurement)
   {
     auto phdr = cose::decode_protected_header(uvm_endorsements_raw);
+
+    if (phdr.content_type != cose::headers::CONTENT_TYPE_APPLICATION_JSON_VALUE)
+    {
+      throw std::logic_error(fmt::format(
+        "Unexpected payload content type {}, expected {}",
+        phdr.content_type,
+        cose::headers::CONTENT_TYPE_APPLICATION_JSON_VALUE));
+    }
 
     if (!cose::is_rsa_alg(phdr.alg))
     {
@@ -275,10 +281,7 @@ namespace ravl
       pem_chain += crypto::cert_der_to_pem(c);
     }
 
-    std::cout << pem_chain << "\n";
-
     const auto& did = phdr.iss;
-
     auto did_document_str = didx509::resolve(pem_chain, did);
     std::cout << did_document_str << "\n";
 
@@ -320,18 +323,10 @@ namespace ravl
         did_document_str));
     }
 
-#ifdef COMMENT
     auto raw_payload =
       verify_uvm_endorsements_signature(pubk.value(), uvm_endorsements_raw);
 
-    if (phdr.content_type != cose::headers::CONTENT_TYPE_APPLICATION_JSON_VALUE)
-    {
-      throw std::logic_error(fmt::format(
-        "Unexpected payload content type {}, expected {}",
-        phdr.content_type,
-        cose::headers::CONTENT_TYPE_APPLICATION_JSON_VALUE));
-    }
-
+#ifdef COMMENT
     UVMEndorsementsPayload payload = nlohmann::json::parse(raw_payload);
     if (payload.sevsnpvm_launch_measurement != uvm_measurement.hex_str())
     {

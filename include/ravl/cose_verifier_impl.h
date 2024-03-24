@@ -53,8 +53,6 @@ namespace crypto
 
   COSEVerifier_OpenSSL::COSEVerifier_OpenSSL(const JsonWebKeyRSAPublic& pubk_ptr)
   {
-    public_key =
-      std::make_shared<PublicKey_OpenSSL>(pubk_ptr->public_key_pem());
   }
 
   COSEVerifier_OpenSSL::~COSEVerifier_OpenSSL() = default;

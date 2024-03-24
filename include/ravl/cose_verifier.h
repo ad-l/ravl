@@ -3,8 +3,8 @@
 #pragma once
 
 #include "crypto.h"
-
 #include <chrono>
+
 namespace ravl::crypto
 {
   class COSEVerifier
@@ -24,7 +24,7 @@ namespace ravl::crypto
   class COSEVerifier_OpenSSL : public COSEVerifier
   {
   private:
-    std::shared_ptr<PublicKey_OpenSSL> public_key;
+    EVP_PKEY* key = nullptr;
 
   public:
     COSEVerifier_OpenSSL(const std::vector<uint8_t>& certificate);
