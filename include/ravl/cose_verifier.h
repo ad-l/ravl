@@ -11,6 +11,7 @@ namespace ravl::crypto
   {
   public:
     virtual bool verify(
+      const JsonWebKeyRSAPublic& pubk,
       const std::span<const uint8_t>& buf,
       std::span<uint8_t>& authned_content) const = 0;
     virtual ~COSEVerifier() = default;
@@ -18,19 +19,15 @@ namespace ravl::crypto
 
   using COSEVerifierUniquePtr = std::unique_ptr<COSEVerifier>;
 
-  COSEVerifierUniquePtr make_cose_verifier(const std::vector<uint8_t>& cert);
   COSEVerifierUniquePtr make_cose_verifier(const JsonWebKeyRSAPublic& pubk);
 
   class COSEVerifier_OpenSSL : public COSEVerifier
   {
-  private:
-    EVP_PKEY* key = nullptr;
-
   public:
-    COSEVerifier_OpenSSL(const std::vector<uint8_t>& certificate);
-    COSEVerifier_OpenSSL(const JsonWebKeyRSAPublic& pubk);
+    COSEVerifier_OpenSSL();
     virtual ~COSEVerifier_OpenSSL() override;
     virtual bool verify(
+      const JsonWebKeyRSAPublic& pubk,
       const std::span<const uint8_t>& buf,
       std::span<uint8_t>& authned_content) const override;
   };  

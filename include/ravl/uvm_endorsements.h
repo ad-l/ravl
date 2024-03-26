@@ -5,6 +5,7 @@
 #include "jwk.h"
 #include "json.h"
 #include "cose_verifier.h"
+#include "cose_verifier_impl.h"
 #include "cose_common.h"
 #include "did.h"
 
@@ -33,6 +34,22 @@ namespace ravl
   {
     std::string sevsnpvm_guest_svn;
     std::string sevsnpvm_launch_measurement;
+  };
+
+  template <>
+  struct ravl_json_serializer<UVMEndorsementsPayload>
+  {
+    inline static void to_json(
+      ravl::json& j, const UVMEndorsementsPayload& x)
+    {
+    }
+
+    inline static void from_json(
+      const ravl::json& j, UVMEndorsementsPayload& x)
+    {
+      j.at("x-ms-sevsnpvm-guestsvn").get_to(x.sevsnpvm_guest_svn);
+      j.at("x-ms-sevsnpvm-launchmeasurement").get_to(x.sevsnpvm_launch_measurement);
+    }
   };
 
   struct UvmEndorsementsProtectedHeader
@@ -244,10 +261,10 @@ namespace ravl
     const crypto::JsonWebKeyRSAPublic& pubkey,
     const std::vector<uint8_t>& uvm_endorsements_raw)
   {
-    auto verifier = crypto::make_cose_verifier(pubkey);
+    auto verifier = crypto::make_cose_verifier();
 
     std::span<uint8_t> payload;
-    if (!verifier->verify(uvm_endorsements_raw, payload))
+    if (!verifier->verify(pubkey, uvm_endorsements_raw, payload))
     {
       throw cose::COSESignatureValidationError("Signature verification failed");
     }
@@ -326,15 +343,15 @@ namespace ravl
     auto raw_payload =
       verify_uvm_endorsements_signature(pubk.value(), uvm_endorsements_raw);
 
-#ifdef COMMENT
-    UVMEndorsementsPayload payload = nlohmann::json::parse(raw_payload);
-    if (payload.sevsnpvm_launch_measurement != uvm_measurement.hex_str())
+    UVMEndorsementsPayload payload = ravl::json::parse(raw_payload);
+    auto uvm_measurement_hex = to_hex(uvm_measurement);
+    if (payload.sevsnpvm_launch_measurement != uvm_measurement_hex)
     {
       throw std::logic_error(fmt::format(
         "Launch measurement in UVM endorsements payload {} is not equal "
         "to UVM attestation measurement {}",
         payload.sevsnpvm_launch_measurement,
-        uvm_measurement.hex_str()));
+        uvm_measurement_hex));
     }
 
     UVMEndorsements end{did, phdr.feed, payload.sevsnpvm_guest_svn};
@@ -350,8 +367,6 @@ namespace ravl
     }
 
     return end;
-#endif
-    UVMEndorsements end{};
-    return end;
   }
 }
+

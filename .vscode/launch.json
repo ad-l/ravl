@@ -140,7 +140,7 @@
       "cwd": "${workspaceFolder}/build",
       "stopAtEntry": false,
       "args": [
-        "-tc=ACI attestaiton"
+        "-tc=ACI attestation"
       ]
     },
     {

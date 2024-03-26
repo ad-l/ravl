@@ -75,33 +75,26 @@ namespace ravl
       return out;
     }
 
-    inline std::vector<uint8_t> from_base64url(const std::string& b64url)
+    inline std::vector<uint8_t> from_base64url(const std::string_view& b64url)
     {
-      std::string b64 = b64url;
-      size_t padding = b64.size() % 4;
-      if (padding) {
-          b64.append(4 - padding, '=');
+      std::string b64_string = std::string(b64url);
+      for (size_t i = 0; i < b64_string.size(); i++)
+      {
+        switch (b64_string[i])
+        {
+          case '-':
+            b64_string[i] = '+';
+            break;
+          case '_':
+            b64_string[i] = '/';
+            break;
+        }
       }
-      for (char &c : b64) {
-          if (c == '-') {
-              c = '+';
-          } else if (c == '_') {
-              c = '/';
-          }
-      }
-
-      UqBIO bio_chain((UqBIO(BIO_f_base64())), UqBIO(b64));
-
-      std::vector<uint8_t> out(b64.size());
-      BIO_set_flags(bio_chain, BIO_FLAGS_BASE64_NO_NL);
-      BIO_set_close(bio_chain, BIO_CLOSE);
-      int n = BIO_read(bio_chain, out.data(), b64.size());
-
-      if (n < 0)
-        throw std::runtime_error("base64 decoding error");
-
-      out.resize(n);
-      return out;
+      auto padding = b64_string.size() % 4 == 2 ? 2 :
+        b64_string.size() % 4 == 3              ? 1 :
+                                                  0;
+      b64_string += std::string(padding, '=');
+      return from_base64(b64_string);
     }
 
     struct UqEVP_PKEY_RSA : public OpenSSL::UqEVP_PKEY
@@ -113,6 +106,16 @@ namespace ravl
         
         UqBIGNUM n(from_base64url(pubkey.n));
         UqBIGNUM e(from_base64url(pubkey.e));
+
+        /*
+        RSA* rsa = RSA_generate_key(2048, RSA_F4, nullptr, nullptr);
+        EVP_PKEY* public_key = EVP_PKEY_new();
+        EVP_PKEY_assign_RSA(public_key, rsa);
+        
+        RSA_set0_key(rsa_key, n, e, nullptr);
+        CHECK1(EVP_PKEY_set1_RSA(*this, rsa_key));
+        RSA_free(rsa_key);
+        */
       }
     };
 
