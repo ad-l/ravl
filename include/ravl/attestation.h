@@ -21,6 +21,7 @@ namespace ravl
     SGX = 0,
     SEV_SNP = 1,
     OPEN_ENCLAVE = 2,
+    ACI = 3,
     UNKNOWN = UINT8_MAX
   };
 

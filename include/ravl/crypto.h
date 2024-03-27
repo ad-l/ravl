@@ -26,6 +26,8 @@
 #  error No crypto library available.
 #endif
 
+#include "jwk.h"
+
 namespace ravl
 {
   namespace crypto
@@ -72,6 +74,46 @@ namespace ravl
 
       return out;
     }
+
+    inline std::vector<uint8_t> from_base64url(const std::string_view& b64url)
+    {
+      std::string b64_string = std::string(b64url);
+      for (size_t i = 0; i < b64_string.size(); i++)
+      {
+        switch (b64_string[i])
+        {
+          case '-':
+            b64_string[i] = '+';
+            break;
+          case '_':
+            b64_string[i] = '/';
+            break;
+        }
+      }
+      auto padding = b64_string.size() % 4 == 2 ? 2 :
+        b64_string.size() % 4 == 3              ? 1 :
+                                                  0;
+      b64_string += std::string(padding, '=');
+      return from_base64(b64_string);
+    }
+
+    struct UqEVP_PKEY_RSA : public OpenSSL::UqEVP_PKEY
+    {
+      UqEVP_PKEY_RSA(const JsonWebKeyRSAPublic& pubkey) : 
+        UqEVP_PKEY()
+      {
+        using namespace OpenSSL;
+
+        auto rsa_key = RSA_new();
+
+        UqBIGNUM n(from_base64url(pubkey.n));
+        UqBIGNUM e(from_base64url(pubkey.e));
+        RSA_set0_key(rsa_key, BN_dup(n), BN_dup(e), nullptr);
+
+        EVP_PKEY_set1_RSA(*this, rsa_key);
+        RSA_free(rsa_key);
+      }
+    };
 
     struct UqEVP_PKEY_P256 : public OpenSSL::UqEVP_PKEY
     {
@@ -144,6 +186,15 @@ namespace ravl
       auto der_sig_buf = res.data();
       CHECK0(i2d_ECDSA_SIG(sig, &der_sig_buf));
       return res;
+    }
+
+    inline std::string cert_der_to_pem(
+      const std::span<const uint8_t>& der
+    )
+    {
+        UqBIO cert_bio(der.data(), der.size());
+        UqX509 x509(cert_bio, false);
+        return x509.pem();
     }
 
     inline std::vector<uint8_t> convert_signature_to_der(
