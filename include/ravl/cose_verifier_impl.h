@@ -26,18 +26,10 @@ namespace ravl::crypto
     const std::span<const uint8_t>& buf,
     std::span<uint8_t>& authned_content) const
   {
-    auto r = RSA_new();
-
-    UqBIGNUM n(from_base64url(pubk.n));
-    UqBIGNUM e(from_base64url(pubk.e));
-    RSA_set0_key(r, n, e, nullptr);
-
-    EVP_PKEY* public_key = EVP_PKEY_new();
-    EVP_PKEY_assign_RSA(public_key, r);
-    
+    UqEVP_PKEY_RSA rsa_key(pubk);
     t_cose_key cose_key;
     cose_key.crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;
-    cose_key.k.key_ptr = public_key;
+    cose_key.k.key_ptr = rsa_key;
 
     t_cose_sign1_verify_ctx verify_ctx;
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_TAG_REQUIRED);

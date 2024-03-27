@@ -103,19 +103,15 @@ namespace ravl
         UqEVP_PKEY()
       {
         using namespace OpenSSL;
-        
+
+        auto rsa_key = RSA_new();
+
         UqBIGNUM n(from_base64url(pubkey.n));
         UqBIGNUM e(from_base64url(pubkey.e));
+        RSA_set0_key(rsa_key, BN_dup(n), BN_dup(e), nullptr);
 
-        /*
-        RSA* rsa = RSA_generate_key(2048, RSA_F4, nullptr, nullptr);
-        EVP_PKEY* public_key = EVP_PKEY_new();
-        EVP_PKEY_assign_RSA(public_key, rsa);
-        
-        RSA_set0_key(rsa_key, n, e, nullptr);
-        CHECK1(EVP_PKEY_set1_RSA(*this, rsa_key));
+        EVP_PKEY_set1_RSA(*this, rsa_key);
         RSA_free(rsa_key);
-        */
       }
     };
 
