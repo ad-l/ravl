@@ -105,7 +105,27 @@ namespace ravl
         using namespace OpenSSL;
 
 #  if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
-#  error "RSA keys from JWK not supported with OpenSSL 3.0"
+        UqBIGNUM n(from_base64url(pubkey.n));
+        UqBIGNUM e(from_base64url(pubkey.e));
+
+        std::vector<uint8_t> n_raw(BN_num_bytes(n));
+        auto ret = BN_bn2nativepad(n, n_raw.data(), n_raw.size());
+
+        std::vector<uint8_t> e_raw(BN_num_bytes(e));
+        ret = BN_bn2nativepad(e, e_raw.data(), e_raw.size());
+
+        OSSL_PARAM params[] = {
+          OSSL_PARAM_construct_BN(
+            OSSL_PKEY_PARAM_RSA_N, n_raw.data(), n_raw.size()),
+          OSSL_PARAM_construct_BN(
+            OSSL_PKEY_PARAM_RSA_E, e_raw.data(), e_raw.size()),
+          OSSL_PARAM_END};
+
+        UqEVP_PKEY_CTX pctx(EVP_PKEY_RSA);
+        EVP_PKEY* epk = NULL;
+        CHECK1(EVP_PKEY_fromdata_init(pctx));
+        CHECK1(EVP_PKEY_fromdata(pctx, &epk, EVP_PKEY_PUBLIC_KEY, params));
+        p.reset(epk);
 #  else
         auto rsa_key = RSA_new();
 
