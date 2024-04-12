@@ -104,6 +104,9 @@ namespace ravl
       {
         using namespace OpenSSL;
 
+#  if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+#  error "RSA keys from JWK not supported with OpenSSL 3.0"
+#  else
         auto rsa_key = RSA_new();
 
         UqBIGNUM n(from_base64url(pubkey.n));
@@ -112,6 +115,7 @@ namespace ravl
 
         EVP_PKEY_set1_RSA(*this, rsa_key);
         RSA_free(rsa_key);
+#  endif
       }
     };
 

@@ -250,7 +250,7 @@ namespace ravl
       if (qcbor_result != QCBOR_SUCCESS)
       {
         throw COSEDecodeError(
-          fmt::format("Failed to decode protected header: {}", qcbor_result));
+          fmt::format("Failed to decode protected header"));
       }
 
       return phdr;
